@@ -1169,7 +1169,336 @@ class GetGNSSData : public OwlModemCLIExecutor {
   }
 };
 
-#define MAX_COMMANDS 90
+
+class MQTTSetClientID : public OwlModemCLIExecutor {
+  public:
+    MQTTSetClientID() : OwlModemCLIExecutor("mqtt.setClientID", "<id>", 
+        "Set unique identifier - id is a 23 character max client identifier",
+        1, 1) {}
+
+    void executor(OwlModemCLI &cli, OwlModemCLICommand &cmd) {
+      str clientID = cmd.argv[0];
+      if (cli.owlModem->mqtt.setClientID(clientID)) {
+        LOGF(L_CLI, "OK client_id=%.*s\r\n", clientID.len, clientID.s);
+      } else {
+        LOGF(L_CLI, "ERROR\r\n");
+      }
+    }
+};
+
+class MQTTSetLocalPort : public OwlModemCLIExecutor {
+  public:
+    MQTTSetLocalPort() : OwlModemCLIExecutor("mqtt.setLocalPort", "<port>", 
+        "(optional) Set local client port", 
+        1, 1) {}
+
+    void executor(OwlModemCLI &cli, OwlModemCLICommand &cmd) {
+      uint32_t port = str_to_uint32_t(cmd.argv[0], 10);
+      if (cli.owlModem->mqtt.setLocalPort(port)) {
+        LOGF(L_CLI, "OK local_port=%u\r\n", port);
+      } else {
+        LOGF(L_CLI, "ERROR\r\n");
+      }
+    }
+};
+
+class MQTTSetServerHostname: public OwlModemCLIExecutor {
+  public:
+    MQTTSetServerHostname() : OwlModemCLIExecutor("mqtt.setServerHostname", "<hostname> [<port>]", 
+        "Set server hostname and optional port (default 1883, 8883 for TLS)",
+        1, 2) {}
+
+    void executor(OwlModemCLI &cli, OwlModemCLICommand &cmd) {
+      str hostname = cmd.argv[0];
+      uint32_t port = 0;
+      if (cmd.argc >= 2) port = str_to_uint32_t(cmd.argv[1], 10);
+      if (cli.owlModem->mqtt.setServerHostname(hostname, port)) {
+        LOGF(L_CLI, "OK server_hostname=%.*s [%d]\r\n", hostname.len, hostname.s, port);
+      } else {
+        LOGF(L_CLI, "ERROR\r\n");
+      }
+    }
+};
+
+class MQTTSetServerIPAddress: public OwlModemCLIExecutor {
+  public:
+    MQTTSetServerIPAddress() : OwlModemCLIExecutor("mqtt.setServerIPAddress", "<ip_address> [<port>]", 
+        "Set server IP address and optional port (default 1883, 8883 for TLS)",
+        1, 2) {}
+
+    void executor(OwlModemCLI &cli, OwlModemCLICommand &cmd) {
+      str ip_address = cmd.argv[0];
+      uint32_t port = 0;
+      if (cmd.argc >= 2) port = str_to_uint32_t(cmd.argv[1], 10);
+      if (cli.owlModem->mqtt.setServerIPAddress(ip_address, port)) {
+        LOGF(L_CLI, "OK server_ip_address=%.*s [%d]\r\n", ip_address.len, ip_address.s, port);
+      } else {
+        LOGF(L_CLI, "ERROR\r\n");
+      }
+    }
+};
+
+class MQTTSetCredentials: public OwlModemCLIExecutor {
+  public:
+    MQTTSetCredentials() : OwlModemCLIExecutor("mqtt.setCredentials", "<username> <password>", 
+        "Set credentials",
+        2, 2) {}
+
+    void executor(OwlModemCLI &cli, OwlModemCLICommand &cmd) {
+      str username = cmd.argv[0];
+      str password = cmd.argv[1];
+      if (cli.owlModem->mqtt.setCredentials(username, password)) {
+        LOGF(L_CLI, "OK credentials=%.*s / ****\r\n", username.len, username.s);
+      } else {
+        LOGF(L_CLI, "ERROR\r\n");
+      }
+    }
+};
+
+class MQTTSetInactivityTimeout : public OwlModemCLIExecutor {
+  public:
+    MQTTSetInactivityTimeout() : OwlModemCLIExecutor("mqtt.setInactivityTimeout", "<timeout>", 
+        "(optional) Inactivity timeout",
+        1, 1) {}
+
+    void executor(OwlModemCLI &cli, OwlModemCLICommand &cmd) {
+      uint32_t timeout = str_to_uint32_t(cmd.argv[0], 10);
+      if (cli.owlModem->mqtt.setInactivityTimeout(timeout)) {
+        LOGF(L_CLI, "OK inactivity_timeout=%u\r\n", timeout);
+      } else {
+        LOGF(L_CLI, "ERROR\r\n");
+      }
+    }
+};
+
+class MQTTSetSecureMode: public OwlModemCLIExecutor {
+  public:
+    MQTTSetSecureMode() : OwlModemCLIExecutor("mqtt.setSecureMode", "<secure> [<profile>]", 
+        "(optional) Set secure mode and optional profile - secure - 1 specifies TLS, 0 cleartext.  Default: 0",
+        1, 2) {}
+
+    void executor(OwlModemCLI &cli, OwlModemCLICommand &cmd) {
+      at_mqtt_secure_e secure = (at_mqtt_secure_e)str_to_uint32_t(cmd.argv[0], 10);
+      uint32_t profile = 0;
+      if (cmd.argc >= 2) profile = str_to_uint32_t(cmd.argv[1], 10);
+      if (cli.owlModem->mqtt.setSecureMode(secure, profile)) {
+        LOGF(L_CLI, "OK secure_mode=%d (%s) / %d\r\n", secure, at_mqtt_secure_text(secure), profile);
+      } else {
+        LOGF(L_CLI, "ERROR\r\n");
+      }
+    }
+};
+
+class MQTTSetCleanSessionMode: public OwlModemCLIExecutor {
+  public:
+    MQTTSetCleanSessionMode() : OwlModemCLIExecutor("mqtt.setCleanSessionMode", "<clean>", 
+        "(optional) Set clean session mode - clean - 1 indicates no retained session state, 0 allows state to be persisted between sessions.  Default: 0",
+        1, 1) {}
+
+    void executor(OwlModemCLI &cli, OwlModemCLICommand &cmd) {
+      at_mqtt_clean_session_e clean = (at_mqtt_clean_session_e)str_to_uint32_t(cmd.argv[0], 10);
+      if (cli.owlModem->mqtt.setCleanSessionMode(clean)) {
+        LOGF(L_CLI, "OK clean_session_mode=%d (%s)\r\n", clean, at_mqtt_clean_session_text(clean));
+      } else {
+        LOGF(L_CLI, "ERROR\r\n");
+      }
+    }
+};
+
+class MQTTSetWillTopic: public OwlModemCLIExecutor {
+  public:
+    MQTTSetWillTopic() : OwlModemCLIExecutor("mqtt.setWillTopic", "<qos> <retain> <topic>", 
+        "(optional) Set will qos, retain, and topic",
+        3, 3) {}
+
+    void executor(OwlModemCLI &cli, OwlModemCLICommand &cmd) {
+      at_mqtt_qos_e qos = (at_mqtt_qos_e)str_to_uint32_t(cmd.argv[0], 10);
+      at_mqtt_retain_e retain = (at_mqtt_retain_e)str_to_uint32_t(cmd.argv[1], 10);
+      str topic = cmd.argv[2];
+      if (cli.owlModem->mqtt.setWillTopic(qos, retain, topic)) {
+        LOGF(L_CLI, "OK will_topic=%d(%s), %d(%s), topic: [%.*s]\r\n", qos, at_mqtt_qos_text(qos), retain, at_mqtt_retain_text(retain), topic.len, topic.s);
+      } else {
+        LOGF(L_CLI, "ERROR\r\n");
+      }
+    }
+};
+
+class MQTTSetWillMessage: public OwlModemCLIExecutor {
+  public:
+    MQTTSetWillMessage() : OwlModemCLIExecutor("mqtt.setWillMessage", "<message>", 
+        "(optional) Set will message",
+        3, 3) {}
+
+    void executor(OwlModemCLI &cli, OwlModemCLICommand &cmd) {
+      str message = cmd.argv[0];
+      if (cli.owlModem->mqtt.setWillMessage(message)) {
+        LOGF(L_CLI, "OK will_message=[%.*s]\r\n", message.len, message.s);
+      } else {
+        LOGF(L_CLI, "ERROR\r\n");
+      }
+    }
+};
+
+class MQTTNVMRestoreDefaultProfile: public OwlModemCLIExecutor {
+  public:
+    MQTTNVMRestoreDefaultProfile() : OwlModemCLIExecutor("mqtt.nvmRestoreDefaultProfile", "", 
+        "Restore default profile to NVM",
+        0, 0) {}
+
+    void executor(OwlModemCLI &cli, OwlModemCLICommand &cmd) {
+      if (cli.owlModem->mqtt.nvmRestoreDefaultProfile()) {
+        LOGF(L_CLI, "OK nvm restore default profile\r\n");
+      } else {
+        LOGF(L_CLI, "ERROR\r\n");
+      }
+    }
+};
+
+class MQTTNVMLoadProfile: public OwlModemCLIExecutor {
+  public:
+    MQTTNVMLoadProfile() : OwlModemCLIExecutor("mqtt.nvmLoadProfile", "", 
+        "Load saved profile from NVM",
+        0, 0) {}
+
+    void executor(OwlModemCLI &cli, OwlModemCLICommand &cmd) {
+      if (cli.owlModem->mqtt.nvmLoadProfile()) {
+        LOGF(L_CLI, "OK nvm load saved profile\r\n");
+      } else {
+        LOGF(L_CLI, "ERROR\r\n");
+      }
+    }
+};
+
+class MQTTNVMSaveProfile: public OwlModemCLIExecutor {
+  public:
+    MQTTNVMSaveProfile() : OwlModemCLIExecutor("mqtt.nvmSaveProfile", "", 
+        "Save current profile to NVM",
+        0, 0) {}
+
+    void executor(OwlModemCLI &cli, OwlModemCLICommand &cmd) {
+      if (cli.owlModem->mqtt.nvmSaveProfile()) {
+        LOGF(L_CLI, "OK nvm saved current profile\r\n");
+      } else {
+        LOGF(L_CLI, "ERROR\r\n");
+      }
+    }
+};
+
+class MQTTDisconnect: public OwlModemCLIExecutor {
+  public:
+    MQTTDisconnect() : OwlModemCLIExecutor("mqtt.disconnect", "", 
+        "Disconnect from MQTT server",
+        0, 0) {}
+
+    void executor(OwlModemCLI &cli, OwlModemCLICommand &cmd) {
+      if (cli.owlModem->mqtt.disconnect()) {
+        LOGF(L_CLI, "OK mqtt disconnect\r\n");
+      } else {
+        LOGF(L_CLI, "ERROR\r\n");
+      }
+    }
+};
+
+class MQTTConnect: public OwlModemCLIExecutor {
+  public:
+    MQTTConnect() : OwlModemCLIExecutor("mqtt.connect", "", 
+        "Connect from MQTT server",
+        0, 0) {}
+
+    void executor(OwlModemCLI &cli, OwlModemCLICommand &cmd) {
+      if (cli.owlModem->mqtt.connect()) {
+        LOGF(L_CLI, "OK mqtt connect\r\n");
+      } else {
+        LOGF(L_CLI, "ERROR\r\n");
+      }
+    }
+};
+
+class MQTTPublishMessage: public OwlModemCLIExecutor {
+  public:
+    MQTTPublishMessage() : OwlModemCLIExecutor("mqtt.publishMessage", "<qos> <retain> <topic> <message>", 
+        "Publish a message with the given qos, retain, topic, and message",
+        4, 4) {}
+
+    void executor(OwlModemCLI &cli, OwlModemCLICommand &cmd) {
+      at_mqtt_qos_e qos = (at_mqtt_qos_e)str_to_uint32_t(cmd.argv[0], 10);
+      at_mqtt_retain_e retain = (at_mqtt_retain_e)str_to_uint32_t(cmd.argv[1], 10);
+      str topic = cmd.argv[2];
+      str message = cmd.argv[3];
+      if (cli.owlModem->mqtt.publishMessage(qos, retain, topic, message)) {
+        LOGF(L_CLI, "OK published message %d(%s), %d(%s), topic: [%.*s], message: [%.*s]\r\n", qos, at_mqtt_qos_text(qos), retain, at_mqtt_retain_text(retain), topic.len, topic.s, message.len, message.s);
+      } else {
+        LOGF(L_CLI, "ERROR\r\n");
+      }
+    }
+};
+
+class MQTTSubscribeTopic: public OwlModemCLIExecutor {
+  public:
+    MQTTSubscribeTopic() : OwlModemCLIExecutor("mqtt.subscribeTopic", "<max_qos> <topic>", 
+        "Subscribe to the given topic",
+        2, 2) {}
+
+    void executor(OwlModemCLI &cli, OwlModemCLICommand &cmd) {
+      at_mqtt_qos_e max_qos = (at_mqtt_qos_e)str_to_uint32_t(cmd.argv[0], 10);
+      str topic = cmd.argv[1];
+      if (cli.owlModem->mqtt.subscribeTopic(max_qos, topic)) {
+        LOGF(L_CLI, "OK subscribed to topic [%.*s] with max qos %u(%s)\r\n", topic.len, topic.s, max_qos, at_mqtt_qos_text(max_qos));
+      } else {
+        LOGF(L_CLI, "ERROR\r\n");
+      }
+    }
+};
+
+class MQTTUnsubscribeTopic: public OwlModemCLIExecutor {
+  public:
+    MQTTUnsubscribeTopic() : OwlModemCLIExecutor("mqtt.unsubscribeTopic", "<topic>", 
+        "Unsubscribe from the given topic",
+        1, 1) {}
+
+    void executor(OwlModemCLI &cli, OwlModemCLICommand &cmd) {
+      str topic = cmd.argv[0];
+      if (cli.owlModem->mqtt.unsubscribeTopic(topic)) {
+        LOGF(L_CLI, "OK subscribed to topic [%.*s]\r\n", topic.len, topic.s);
+      } else {
+        LOGF(L_CLI, "ERROR\r\n");
+      }
+    }
+};
+
+class MQTTReadMessages: public OwlModemCLIExecutor {
+  public:
+    MQTTReadMessages() : OwlModemCLIExecutor("mqtt.readMessages", "", 
+        "Reads any pending unread MQTT messages",
+        0, 0) {}
+
+    void executor(OwlModemCLI &cli, OwlModemCLICommand &cmd) {
+      if (cli.owlModem->mqtt.readMessages()) {
+        LOGF(L_CLI, "OK mqtt readMessages\r\n");
+      } else {
+        LOGF(L_CLI, "ERROR\r\n");
+      }
+    }
+};
+
+class MQTTSetMessageFormat: public OwlModemCLIExecutor {
+  public:
+    MQTTSetMessageFormat() : OwlModemCLIExecutor("mqtt.setMessageFormat", "<format>", 
+        "Sets the incoming message format",
+        1, 1) {}
+
+    void executor(OwlModemCLI &cli, OwlModemCLICommand &cmd) {
+      at_mqtt_format_e format = (at_mqtt_format_e)str_to_uint32_t(cmd.argv[0], 10);
+      if (cli.owlModem->mqtt.setMessageFormat(format)) {
+        LOGF(L_CLI, "OK set message format %d(%s)\r\n", format, at_mqtt_format_text(format));
+      } else {
+        LOGF(L_CLI, "ERROR\r\n");
+      }
+    }
+};
+
+
+#define MAX_COMMANDS 100
 
 OwlModemCLI::OwlModemCLI(OwlModemRN4 *modem, IOwlSerial *debug_port) {
   this->owlModem  = modem;
@@ -1249,6 +1578,27 @@ OwlModemCLI::OwlModemCLI(OwlModemRN4 *modem, IOwlSerial *debug_port) {
   executors[cnt++] = owl_new OpenSocketAcceptTCP();
 
   executors[cnt++] = owl_new GetGNSSData();
+
+  executors[cnt++] = owl_new MQTTSetClientID();
+  executors[cnt++] = owl_new MQTTSetLocalPort();
+  executors[cnt++] = owl_new MQTTSetServerHostname();
+  executors[cnt++] = owl_new MQTTSetServerIPAddress();
+  executors[cnt++] = owl_new MQTTSetCredentials();
+  executors[cnt++] = owl_new MQTTSetInactivityTimeout();
+  executors[cnt++] = owl_new MQTTSetSecureMode();
+  executors[cnt++] = owl_new MQTTSetCleanSessionMode();
+  executors[cnt++] = owl_new MQTTSetWillTopic();
+  executors[cnt++] = owl_new MQTTSetWillMessage();
+  executors[cnt++] = owl_new MQTTNVMRestoreDefaultProfile();
+  executors[cnt++] = owl_new MQTTNVMLoadProfile();
+  executors[cnt++] = owl_new MQTTNVMSaveProfile();
+  executors[cnt++] = owl_new MQTTDisconnect();
+  executors[cnt++] = owl_new MQTTConnect();
+  executors[cnt++] = owl_new MQTTPublishMessage();
+  executors[cnt++] = owl_new MQTTSubscribeTopic();
+  executors[cnt++] = owl_new MQTTUnsubscribeTopic();
+  executors[cnt++] = owl_new MQTTReadMessages();
+  executors[cnt++] = owl_new MQTTSetMessageFormat();
 
   executors[cnt++] = 0;
   if (cnt > MAX_COMMANDS) {
